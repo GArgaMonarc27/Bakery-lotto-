@@ -206,8 +206,18 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
             text-align: center;
             max-width: 300px;
-       
-       }
+        }
+
+        /* Tighter spacing for text inside the popup */
+        dialog p {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        #modalEmail {
+            font-size: 0.9rem;
+            color: #7b7c7d;
+        }
 
       /* Styling for the background backdrop */
         dialog::backdrop {
@@ -234,10 +244,11 @@
    <h2>🎁 Surprise Box Game</h2><br>
    <p>&ensp;Select 1 of the 9 surprise boxes below to reveal if you've won a prize!</p><br>
 
-   <!-- The Modal Dialog -->
+   <!-- The Modal Dialog (used for both win and lose popups) -->
     <dialog id="resultModal">
         <h2 id="modalTitle">Result</h2>
         <p id="modalMessage">Loading your prize...</p>
+        <p id="modalEmail"></p>
         <button id="closeModalBtn">Close</button>
     </dialog>
 
@@ -251,18 +262,33 @@
 
     <script>
         // Define the modal
-        const openBoxBtn = document.getElementById('openBoxBtn');
         const resultModal = document.getElementById('resultModal');
         const modalTitle = document.getElementById('modalTitle');
         const modalMessage = document.getElementById('modalMessage');
+        const modalEmail = document.getElementById('modalEmail');
         const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // Close the popup when clicking the close button (set up once)
+        closeModalBtn.addEventListener('click', () => {
+            resultModal.close();
+        });
+
+        // Show the popup 1.5 seconds after the box opens
+        function showPopup(title, message, email) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalEmail.textContent = email ? `Email: ${email}` : '';
+            setTimeout(() => {
+                resultModal.showModal();
+            }, 1500);
+        }
 
         // Google APPS Script to read list of possible prizes and award a prize (including a 'no win' scenario)        
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyXWPIk9BeUTs3NvwJjyuHiASjF9wYN8F_hX2pYc8g1JChygtVR_irtDUkQrl5hcjy8nQ/exec';
         const resultDiv = document.getElementById('result');
         const previousPrize = localStorage.getItem('PrizeWon');
- 
-console.log (previousPrize);
+        console.log(previousPrize);
+
         let gameActive = false;
 
         function initGame() {
@@ -270,12 +296,10 @@ console.log (previousPrize);
             grid.innerHTML = ''; 
             gameActive = true;
 
- 
             for (let i = 0; i < 9; i++) {
                 const box = document.createElement('div');
                 box.className = 'box-container';
                 
-                // Added a structural .box-lid layer into the element structure
                 box.innerHTML = `
                     <div class="box-lid"></div>
                     <div class="bow-left"></div>
@@ -293,15 +317,13 @@ console.log (previousPrize);
 
         async function unwrapPresent(selectedBox) {
             if (!gameActive || (previousPrize != null) || selectedBox.classList.contains('opened')){
-               //resultDiv.innerText = <strong>"Sorry you have already played",/strong>;
                resultDiv.innerHTML = "⚠️ <strong>Sorry you have already played</strong>";
-            return;
+               return;
             }
 
-            gameActive = false; 
+            gameActive = false; // Block further clicks while waiting for the server
             resultDiv.innerText = "Checking your surprise box...";
 
-            // Reveal what prize has been won     
             try {
                // Using a standard GET request completely avoids the CORS preflight trigger
                const email = localStorage.getItem('EmailUsed');
@@ -312,52 +334,40 @@ console.log (previousPrize);
 
                selectedBox.classList.add('opened');
 
-            if (data.success) {
-               selectedBox.innerText = "🏆";   
+               if (data.success) {
+                  // ---- WIN ----
+                  selectedBox.innerText = "🏆";
+                  localStorage.setItem('PrizeWon', data.prize);
+                  console.log(data.prize);
 
-           // Storing prize in Browser Cache
-            console.log `${data.prize}`;
-	    localStorage.setItem('PrizeWon', `${data.prize}`);  
-           
-               resultDiv.innerHTML = `🎉 You won: <strong>${data.prize}</strong>!`;
-               modalTitle.textContent = "🎉 Congratulations! You've won a prize.";
-               modalMessage.textContent = "Please see a member of the Technology Team to assist you" ;
+                  resultDiv.innerHTML = `🎉 You won: <strong>${data.prize}</strong>!`;
 
-               // Wait 1500 milliseconds (1.5 seconds) then display the modal
-                  setTimeout(function() {
-                  resultModal.showModal();
-                  }, 1500); 
+                  showPopup(
+                     "🎉 Congratulations, you won!",
+                     `You've won: ${data.prize}. Please go to the Technology booth and show this screen to a member of the Technology Team to collect your prize.`,
+                     email
+                  );
 
-              
-               // Close the modal when clicking the close button
-                  closeModalBtn.addEventListener('click', () => {
-                  resultModal.close();
-                  });
+               } else {
+                  // ---- LOSE ----
+                  selectedBox.innerText = "❌";
+                  localStorage.setItem('PrizeWon', 'No prize');
 
+                  const loseMessage = data.message || "Not a winner this time.";
+                  resultDiv.innerText = `😢 ${loseMessage}`;
 
-            } else {
+                  showPopup(
+                     "😢 Sorry, not this time",
+                     `${loseMessage} Thanks for playing and for visiting the Technology booth. Enjoy the rest of the conference!`
+                  );
+               }
 
-               // Storing prize in Browser Cache
-               console.log `${data.prize}`;
-	       localStorage.setItem('PrizeWon', `${data.prize}`);  
-
-               resultDiv.innerText = `😢 ${data.message}`;
-               selectedBox.innerText = "❌";
-
-            }
             } catch (error) {
                console.error("Error fetching prize:", error);
                resultDiv.innerText = "Oops! Something went wrong connecting to the prize pool.";
                selectedBox.classList.remove('opened');
                selectedBox.innerText = "?";
-            } finally {
-             hasClicked = false;
-           }
-
-
-            const PW = localStorage.getItem('PrizeWon');
-            console.log(PW);
-            gameActive = false; 
+            }
         }
 
         initGame();
