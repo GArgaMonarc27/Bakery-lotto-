@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surprise Present Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #d7dbde;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overscroll-behavior: none; /* Stops mobile browsers from refreshing on pull-down */
+        }
+
+        h1 {
+           font-family: 'Inter', sans-serif;
+           font-size: 2.5rem;
+           font-weight: 800;          /* Extra bold to support the gradient */
+           line-height: 1.15;
+           letter-spacing: -0.03em;
+    
+           /* The Gradient Magic */
+           background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+           -webkit-background-clip: text;
+           -webkit-text-fill-color: transparent;
+    
+           margin-bottom: 0.75rem;
+        }
+
+
+        h2 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        p {
+            color: #7b7c7d;
+            margin-bottom: 45px;
+        }
+
+        /* 3x3 Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 340px; 
+            width: 100%;
+            padding: 10px;
+        }
+
+        /* Present Base Container */
+        .box-container {
+            position: relative;
+            aspect-ratio: 1;
+            background-color: #f6a2a4;
+            border-radius: 0 0 10px 10px; /* Rounded only at bottom */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s, background-color 0.3s;
+        }
+
+        .box-container:hover {
+            transform: scale(1.05);
+        }
+
+        /* --- Present Lid --- */
+        .box-lid {
+            position: absolute;
+            top: -4px; /* Slightly overlaps the top */
+            left: -6px; /* Extends slightly past left border */
+            right: -6px; /* Extends slightly past right border */
+            height: 20px;
+            background-color: #862633; /* Darker red for contrast */
+            border-radius: 4px;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.15);
+            z-index: 4;
+            transition: transform 0.4s ease;
+        }
+
+        /* Lid Ribbon Bit */
+        .box-lid::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 100%;
+            background-color: #323130;
+        }
+
+        /* --- Ribbon Bow Elements (On Top of Lid) --- */
+        .bow-left, .bow-right {
+            position: absolute;
+            top: -18px; 
+            width: 14px;
+            height: 16px;
+            border: 6px solid #323130;
+            border-radius: 50% 50% 0 50%;
+            z-index: 5;
+            background-color: transparent;
+        }
+
+        .bow-left {
+            left: calc(45% - 25px);
+            transform: rotate(-10deg);
+        }
+
+        .bow-right {
+            right: calc(45% - 25px);
+            transform: rotate(10deg);
+            border-radius: 50% 50% 50% 0;
+        }
+
+        /* --- Wrap Ribbons on Body --- */
+        .ribbon-v {
+            position: absolute;
+            top: 16px; /* Starts underneath the lid */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: calc(100% - 16px);
+            background-color: #323130;
+            z-index: 1;
+        }
+
+
+        /* Prize Text */
+        .prize {
+            display: none;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            z-index: 2;
+            padding: 8px;
+        }
+
+        /* Unwrapped/Opened Box State */
+        .box-container.opened {
+            background-color: #fff;
+            border: 3px dashed #ff4d4d;
+            border-radius: 10px;
+            cursor: default;
+            transform: none;
+        }
+
+        /* Hide all gift wrapping parts when opened */
+        .box-container.opened .ribbon-v,
+        .box-container.opened .ribbon-h,
+        .box-container.opened .box-lid,
+        .box-container.opened .bow-left,
+        .box-container.opened .bow-right {
+            display: none;
+        }
+
+        /* Prize reveals with a slower animation (Changed from 0.3s to 0.7s) */
+        .box-container.opened .prize {
+            display: block;
+            animation: popIn 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Close Button */
+        #close-btn {
+            margin-top: 35px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #a8adaf;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #close-btn:hover {
+            background-color: #7b7c7d;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+      /* CSS Class to make the dynamically added emoji large */
+         .large-emoji {
+              font-size: 4rem; /* Scales the emoji up */
+              line-height: 1;
+              animation: popIn 0.3s ease-out; /* Optional fun pop effect */
+         }
+
+      /* Basic styling for the modal */
+        dialog {
+            border: none;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 300px;
+       
+       }
+
+      /* Styling for the background backdrop */
+        dialog::backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #result { 
+            margin-top: 30px; 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #2ed573; 
+         }
+
+    </style>
+</head>
+<body>
+   <h1>Cairns 2026 </h1><br>
+   <h2>🎁 Surprise Box Game</h2><br>
+   <p>&ensp;Select 1 of the 9 surprise boxes below to reveal if you've won a prize!</p><br>
+
+   <!-- The Modal Dialog -->
+    <dialog id="resultModal">
+        <h2 id="modalTitle">Result</h2>
+        <p id="modalMessage">Loading your prize...</p>
+        <button id="closeModalBtn">Close</button>
+    </dialog>
+
+
+    <!-- Simple 9 box grid structure without hardcoded data-surprise attributes -->
+    <div class="grid" id="game-grid"></div>
+
+    <div id="result"></div>
+
+  
+
+    <script>
+        // Define the modal
+        const openBoxBtn = document.getElementById('openBoxBtn');
+        const resultModal = document.getElementById('resultModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // Google APPS Script to read list of possible prizes and award a prize (including a 'no win' scenario)        
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyXWPIk9BeUTs3NvwJjyuHiASjF9wYN8F_hX2pYc8g1JChygtVR_irtDUkQrl5hcjy8nQ/exec';
+        const resultDiv = document.getElementById('result');
+        const previousPrize = localStorage.getItem('PrizeWon');
+ 
+console.log (previousPrize);
+        let gameActive = false;
+
+        function initGame() {
+            const grid = document.getElementById('game-grid');
+            grid.innerHTML = ''; 
+            gameActive = true;
+
+ 
+            for (let i = 0; i < 9; i++) {
+                const box = document.createElement('div');
+                box.className = 'box-container';
+                
+                // Added a structural .box-lid layer into the element structure
+                box.innerHTML = `
+                    <div class="box-lid"></div>
+                    <div class="bow-left"></div>
+                    <div class="bow-right"></div>
+                    <div class="ribbon-v"></div>
+               `;
+
+                box.addEventListener('click', function() {
+                    unwrapPresent(this);
+                });
+
+                grid.appendChild(box);
+            }
+        }
+
+        async function unwrapPresent(selectedBox) {
+            if (!gameActive || (previousPrize != null) || selectedBox.classList.contains('opened')){
+               //resultDiv.innerText = <strong>"Sorry you have already played",/strong>;
+               resultDiv.innerHTML = "⚠️ <strong>Sorry you have already played</strong>";
+            return;
+            }
+
+            gameActive = false; 
+            resultDiv.innerText = "Checking your surprise box...";
+
+            // Reveal what prize has been won     
+            try {
+               // Using a standard GET request completely avoids the CORS preflight trigger
+               const email = localStorage.getItem('EmailUsed');
+               console.log(email);
+               const urlWithParams = `${WEB_APP_URL}?myKey=${encodeURIComponent(email)}`;
+               const response = await fetch(urlWithParams);
+               const data = await response.json();
+
+               selectedBox.classList.add('opened');
+
+            if (data.success) {
+               selectedBox.innerText = "🏆";   
+
+           // Storing prize in Browser Cache
+            console.log `${data.prize}`;
+	    localStorage.setItem('PrizeWon', `${data.prize}`);  
+           
+               resultDiv.innerHTML = `🎉 You won: <strong>${data.prize}</strong>!`;
+               modalTitle.textContent = "🎉 Congratulations! You've won a prize.";
+               modalMessage.textContent = "Please see a member of the Technology Team to assist you" ;
+
+               // Wait 1500 milliseconds (1.5 seconds) then display the modal
+                  setTimeout(function() {
+                  resultModal.showModal();
+                  }, 1500); 
+
+              
+               // Close the modal when clicking the close button
+                  closeModalBtn.addEventListener('click', () => {
+                  resultModal.close();
+                  });
+
+
+            } else {
+
+               // Storing prize in Browser Cache
+               console.log `${data.prize}`;
+	       localStorage.setItem('PrizeWon', `${data.prize}`);  
+
+               resultDiv.innerText = `😢 ${data.message}`;
+               selectedBox.innerText = "❌";
+
+            }
+            } catch (error) {
+               console.error("Error fetching prize:", error);
+               resultDiv.innerText = "Oops! Something went wrong connecting to the prize pool.";
+               selectedBox.classList.remove('opened');
+               selectedBox.innerText = "?";
+            } finally {
+             hasClicked = false;
+           }
+
+
+            const PW = localStorage.getItem('PrizeWon');
+            console.log(PW);
+            gameActive = false; 
+        }
+
+        initGame();
+    </script>
+
+</body>
+</html>
